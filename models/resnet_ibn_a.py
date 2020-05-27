@@ -182,12 +182,6 @@ def resnet152_ibn_a(last_stride, pretrained=False, **kwargs):
 
 # download from 'https://drive.google.com/drive/folders/1thS2B8UOSBi_cJX6zRy6YYRwz_nVFI_S', move it to 'model_dir'
 def load(model):
-    import os
-    from torch.nn import DataParallel
-    torch_home = os.path.expanduser(os.getenv('TORCH_HOME', '~/.torch'))
-    model_dir = os.getenv('TORCH_MODEL_ZOO', os.path.join(torch_home, 'models'))  # model_dir
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    checkpoint_path = os.path.join(model_dir, 'resnet50_ibn_a.pth.tar')
-    model.load_state_dict({k.replace('module.', ''): v for k, v in torch.load(checkpoint_path)['state_dict'].items()})
+    param = model_zoo.load_url('resnet50_ibn_a.pth.tar')
+    model.load_state_dict({k.replace('module.', ''): v for k, v in param['state_dict'].items()})
     return model
