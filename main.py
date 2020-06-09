@@ -110,7 +110,7 @@ def main():
     summary_writer = SummaryWriter(cfg.TRAIN.LOG_DIR)  # visualise
 
     dataset, train_loader, _, _ = build_data_loader()
-    model = BagReID_IBN(dataset.num_train_bags)
+    model = BagReID_RESNET(dataset.num_train_bags)
     criterion_xent = CrossEntropyLabelSmooth(dataset.num_train_bags, use_gpu=cfg.CUDA)
     criterion_triplet = TripletLoss(margin=cfg.TRAIN.MARGIN)
     criterion_center = CenterLoss(dataset.num_train_bags,

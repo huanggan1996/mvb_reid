@@ -1,8 +1,6 @@
-import copy
 import random
 import torch
 import torch.nn as nn
-from torchvision import models
 from torchvision.models.resnet import Bottleneck, resnet50
 from config import cfg
 from models.resnet_ibn_a import resnet50_ibn_a
@@ -38,13 +36,13 @@ class BagReID_SE_RESNEXT(nn.Module):
         # global branch
         self.global_avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.global_reduction = nn.Sequential(
-            nn.Conv2d(2048, 1024, 1),
-            nn.BatchNorm2d(1024),
+            nn.Conv2d(2048, cfg.MODEL.GLOBAL_FEATS, 1),
+            nn.BatchNorm2d(cfg.MODEL.GLOBAL_FEATS),
             nn.ReLU(True)
         )
         self.global_reduction.apply(weights_init_kaiming)
-        self.global_bn = nn.BatchNorm1d(1024)
-        self.global_softmax = nn.Linear(1024, num_classes)
+        self.global_bn = nn.BatchNorm1d(cfg.MODEL.GLOBAL_FEATS)
+        self.global_softmax = nn.Linear(cfg.MODEL.GLOBAL_FEATS, num_classes)
         self.global_softmax.apply(weights_init_kaiming)
 
         # part branch
@@ -52,13 +50,13 @@ class BagReID_SE_RESNEXT(nn.Module):
         self.part_maxpool = nn.AdaptiveMaxPool2d((1, 1))
         self.batch_drop = BatchDrop(height_ratio, width_ratio)
         self.part_reduction = nn.Sequential(
-            nn.Linear(2048, 1024, True),
-            nn.BatchNorm1d(1024),
+            nn.Linear(2048, cfg.MODEL.PART_FEATS, True),
+            nn.BatchNorm1d(cfg.MODEL.PART_FEATS),
             nn.ReLU(True)
         )
         self.part_reduction.apply(weights_init_kaiming)
-        self.part_bn = nn.BatchNorm1d(1024)
-        self.part_softmax = nn.Linear(1024, num_classes)
+        self.part_bn = nn.BatchNorm1d(cfg.MODEL.PART_FEATS)
+        self.part_softmax = nn.Linear(cfg.MODEL.PART_FEATS, num_classes)
         self.part_softmax.apply(weights_init_kaiming)
 
     def forward(self, x):
@@ -93,8 +91,8 @@ class BagReID_RESNET(nn.Module):
 
     def __init__(self, num_classes=0, width_ratio=0.5, height_ratio=0.5):
         super(BagReID_RESNET, self).__init__()
-
         resnet = resnet50(pretrained=True)
+
         layer4 = nn.Sequential(
             Bottleneck(1024, 512, stride=1, downsample=nn.Sequential(
                 nn.Conv2d(1024, 2048, kernel_size=1, stride=1, bias=False),
@@ -180,13 +178,13 @@ class BagReID_IBN(nn.Module):
         # global branch
         self.global_avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.global_reduction = nn.Sequential(
-            nn.Conv2d(2048, 2048, 1),
-            nn.BatchNorm2d(2048),
+            nn.Conv2d(2048, cfg.MODEL.GLOBAL_FEATS, 1),
+            nn.BatchNorm2d(cfg.MODEL.GLOBAL_FEATS),
             nn.ReLU(True)
         )
         self.global_reduction.apply(weights_init_kaiming)
-        self.global_bn = nn.BatchNorm1d(2048)
-        self.global_softmax = nn.Linear(2048, num_classes)
+        self.global_bn = nn.BatchNorm1d(cfg.MODEL.GLOBAL_FEATS)
+        self.global_softmax = nn.Linear(cfg.MODEL.GLOBAL_FEATS, num_classes)
         self.global_softmax.apply(weights_init_kaiming)
 
         # part branch
@@ -194,14 +192,13 @@ class BagReID_IBN(nn.Module):
         self.part_maxpool = nn.AdaptiveMaxPool2d((1, 1))
         self.batch_drop = BatchDrop(height_ratio, width_ratio)
         self.part_reduction = nn.Sequential(
-            nn.Linear(2048, 2048, True),
-            nn.BatchNorm1d(2048),
+            nn.Linear(2048, cfg.MODEL.PART_FEATS, True),
+            nn.BatchNorm1d(cfg.MODEL.PART_FEATS),
             nn.ReLU(True)
         )
-
         self.part_reduction.apply(weights_init_kaiming)
-        self.part_bn = nn.BatchNorm1d(2048)
-        self.part_softmax = nn.Linear(2048, num_classes)
+        self.part_bn = nn.BatchNorm1d(cfg.MODEL.PART_FEATS)
+        self.part_softmax = nn.Linear(cfg.MODEL.PART_FEATS, num_classes)
         self.part_softmax.apply(weights_init_kaiming)
 
     def forward(self, x):
@@ -238,16 +235,13 @@ class BagReID(nn.Module):
         self.part1 = BagReID_SE_RESNEXT(num_classes, width_ratio, height_ratio)
         self.part2 = BagReID_RESNET(num_classes, width_ratio, height_ratio)
         self.part3 = BagReID_IBN(num_classes, width_ratio, height_ratio)
-        self.part1.load_state_dict(
-            torch.load('./checkpoints/resnext50.pth.tar')['state_dict'])
-        self.part2.load_state_dict(
-            torch.load('./checkpoints/resnet50.pth.tar')['state_dict'])
-        self.part3.load_state_dict(
-            torch.load('./checkpoints/resnet50_ibn_a.pth.tar')['state_dict'])
+        # self.part1.load_state_dict(torch.load('./checkpoints/resnext50.pth')['state_dict'])
+        self.part2.load_state_dict(torch.load('./checkpoints/resnet50.pth')['state_dict'])
+        # self.part3.load_state_dict(torch.load('./checkpoints/resnet50_ibn_a.pth')['state_dict'])
 
     def forward(self, x):
-        part1 = self.part1(x)
-        part2 = self.part2(x)
-        part3 = self.part3(x)
-        return torch.cat((part1, part2, part3), dim=1)
-        # return part2
+        # part1 = self.part1(x)  # 1024
+        part2 = self.part2(x)  # 2048
+        # part3 = self.part3(x)  # 2048
+        # return torch.cat((part2, part3), dim=1)
+        return part2

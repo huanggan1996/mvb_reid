@@ -180,7 +180,7 @@ def resnet152_ibn_a(last_stride, pretrained=False, **kwargs):
     return model
 
 
-# download from 'https://drive.google.com/drive/folders/1thS2B8UOSBi_cJX6zRy6YYRwz_nVFI_S', move it to 'model_dir'
+# download from 'https://drive.google.com/drive/folders/1thS2B8UOSBi_cJX6zRy6YYRwz_nVFI_S', move it to 'error'
 def load(model):
     param = model_zoo.load_url('resnet50_ibn_a.pth.tar')
     model.load_state_dict({k.replace('module.', ''): v for k, v in param['state_dict'].items()})
